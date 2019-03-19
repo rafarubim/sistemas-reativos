@@ -1,2 +1,2 @@
 # sistemas-reativos
-# Gabriel Busquim e Rafael Rubim
+Gabriel Busquim e Rafael Rubim
