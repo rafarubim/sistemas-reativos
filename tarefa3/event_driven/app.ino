@@ -10,6 +10,6 @@ void button_changed(int p, int v) {
   
 }
 
-void timer_expired(void) {
+void timer_expired(int timer) {
   
 }
