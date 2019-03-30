@@ -13,7 +13,7 @@
 #define TIMER_DEBOUNCE_3 3
 
 static int isDebounceBlocked[3] = {0, 0, 0};
-static int timerByDebounceInx[3] = {TIMER_DEBOUNCE_1, TIMER_DEBOUNCE_2, TIMER_DEBOUNCE_3};
+static const int timerByDebounceInx[3] = {TIMER_DEBOUNCE_1, TIMER_DEBOUNCE_2, TIMER_DEBOUNCE_3};
 
 static int val = 0;
 

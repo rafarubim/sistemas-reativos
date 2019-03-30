@@ -8,7 +8,7 @@ static int buttonStates[3] = {-1, -1, -1};
 static unsigned long timerStart[MAX_TIMERS];
 static unsigned long timerDuration[MAX_TIMERS];
 
-static int pinByIndex[3] = {KEY1, KEY2, KEY3};
+static const int pinByIndex[3] = {KEY1, KEY2, KEY3};
 static int getPinIndex(int pin);
 
 /* Funções de registro: */
