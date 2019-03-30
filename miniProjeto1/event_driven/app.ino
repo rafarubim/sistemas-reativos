@@ -2,7 +2,7 @@
 #include "pindefs.h"
 #include "event_driven.h"
 
-#define DEBOUNCE_DURATION_MS 1000
+#define DEBOUNCE_DURATION_MS 50
 
 #define DEBOUNCE_1_INDEX 0
 #define DEBOUNCE_2_INDEX 1
