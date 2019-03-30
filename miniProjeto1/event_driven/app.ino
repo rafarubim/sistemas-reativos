@@ -15,23 +15,11 @@
 static int isDebounceBlocked[3] = {0, 0, 0};
 static const int timerByDebounceInx[3] = {TIMER_DEBOUNCE_1, TIMER_DEBOUNCE_2, TIMER_DEBOUNCE_3};
 
-static int val = 0;
-
 static void debouncedButtonChanged();
 
 static void buttonChanged(int pin, int value);
 
 void appinit(void) {
-  pinMode(LED1, OUTPUT);
-  pinMode(LED2, OUTPUT);
-  pinMode(LED3, OUTPUT);
-  pinMode(LED4, OUTPUT);
-  digitalWrite(LED1, HIGH);
-  digitalWrite(LED2, HIGH);
-  digitalWrite(LED3, HIGH);
-  digitalWrite(LED4, HIGH);
-  button_listen(KEY1);
-  button_listen(KEY2);
 }
 
 void button_changed(int p, int v) {
@@ -63,19 +51,7 @@ void timer_expired(int timer) {
 }
 
 static void buttonChanged(int pin, int value) {
-  if(!value) {
-    val += 1;
-  }
-  switch(val) {
-     case 4:
-      digitalWrite(LED4, LOW);
-     case 3:
-      digitalWrite(LED3, LOW);
-     case 2:
-      digitalWrite(LED2, LOW);
-     case 1:
-      digitalWrite(LED1, LOW);
-  }
+  
 }
 
 void debouncedButtonChanged(int debounceInx, int pin, int value) {
