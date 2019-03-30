@@ -2,7 +2,7 @@
 #include "pindefs.h"
 #include "app.h"
 
-#define MAX_TIMERS 3
+#define MAX_TIMERS 10
 
 static int buttonStates[3] = {-1, -1, -1};
 static unsigned long timerStart[MAX_TIMERS];
