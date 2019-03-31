@@ -6,6 +6,8 @@
 
 #define DEBOUNCE_DURATION_MS 50
 
+#define DEBOUNCES_AMOUNT 3
+
 #define DEBOUNCE_1_INDEX 0
 #define DEBOUNCE_2_INDEX 1
 #define DEBOUNCE_3_INDEX 2
@@ -36,8 +38,8 @@ typedef struct ClockTimeStruct {
  int hours;
 } ClockTime;
 
-static int isDebounceBlocked[3] = {0, 0, 0};
-static const int timerByDebounceInx[3] = {TIMER_DEBOUNCE_1, TIMER_DEBOUNCE_2, TIMER_DEBOUNCE_3};
+static int isDebounceBlocked[DEBOUNCES_AMOUNT] = {0, 0, 0};
+static const int timerByDebounceInx[DEBOUNCES_AMOUNT] = {TIMER_DEBOUNCE_1, TIMER_DEBOUNCE_2, TIMER_DEBOUNCE_3};
 
 static ClockTime displayTime = {0, 0};
 static const int allLeds[LEDS_AMOUNT] = {LED1, LED2, LED3, LED4};
