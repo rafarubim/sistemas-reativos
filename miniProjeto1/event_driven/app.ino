@@ -2,6 +2,8 @@
 #include "pindefs.h"
 #include "event_driven.h"
 
+#define null 0
+
 #define DEBOUNCE_DURATION_MS 50
 
 #define DEBOUNCE_1_INDEX 0
@@ -12,6 +14,11 @@
 #define TIMER_DEBOUNCE_2 2
 #define TIMER_DEBOUNCE_3 3
 #define TIMER_DISPLAY_LOOP 4
+
+#define LEDS_AMOUNT 4
+#define INTERNAL_MODE_AMOUNT 8
+#define MODE_AMOUNT 6
+#define MAX_SIMULTANEOUS_MODE_LEDS 2
 
 /* >>> Copied from internet */
 #define LATCH_DIO 4
@@ -33,10 +40,16 @@ static int isDebounceBlocked[3] = {0, 0, 0};
 static const int timerByDebounceInx[3] = {TIMER_DEBOUNCE_1, TIMER_DEBOUNCE_2, TIMER_DEBOUNCE_3};
 
 static ClockTime displayTime = {0, 0};
+static const int allLeds[LEDS_AMOUNT] = {LED1, LED2, LED3, LED4};
+
+static int internalMode = 0;
+static const int modeByInternalMode[INTERNAL_MODE_AMOUNT] = {0, 1, 2, 3, 3, 4, 4, 5};
+static const int ledsByMode[MODE_AMOUNT][MAX_SIMULTANEOUS_MODE_LEDS] = {{LED1, null}, {LED2, null}, {LED3, null}, {LED4, null}, {LED1, LED2}, {LED2, LED3}};
 
 static void debouncedButtonChanged();
 
 static void buttonChanged(int pin, int value);
+static void nextInternalMode();
 
 void appinit(void) {
   /* >>> Copied from internet */
@@ -45,6 +58,17 @@ void appinit(void) {
   pinMode(DATA_DIO,OUTPUT);
   /* <<< */
   timer_set(TIMER_DISPLAY_LOOP, 0);
+
+  pinMode(LED1, OUTPUT);
+  pinMode(LED2, OUTPUT);
+  pinMode(LED3, OUTPUT);
+  pinMode(LED4, OUTPUT);
+  
+  button_listen(KEY3);
+  digitalWrite(LED1, LOW);
+  digitalWrite(LED2, HIGH);
+  digitalWrite(LED3, HIGH);
+  digitalWrite(LED4, HIGH);
 }
 
 void button_changed(int p, int v) {
@@ -83,7 +107,14 @@ void timer_expired(int timer) {
 }
 
 static void buttonChanged(int pin, int value) {
-  
+  int pressed = !value;
+  switch(pin) {
+    case KEY3:
+      if (pressed) {
+        nextInternalMode();
+      }
+      break;
+  }
 }
 
 void debouncedButtonChanged(int debounceInx, int pin, int value) {
@@ -108,3 +139,18 @@ void writeNumberToSegment(byte segment, byte value)
   digitalWrite(LATCH_DIO, HIGH);
 }
 /* <<< */
+
+static void nextInternalMode() {
+  internalMode++;
+  if (internalMode >= INTERNAL_MODE_AMOUNT) {
+    internalMode = 0;
+  }
+  for (int i = 0; i < LEDS_AMOUNT; i++) {
+    digitalWrite(allLeds[i], HIGH);
+  }
+  int mode = modeByInternalMode[internalMode];
+  int* modeLeds = ledsByMode[mode];
+  for (int i = 0; i < MAX_SIMULTANEOUS_MODE_LEDS; i++) {
+    digitalWrite(modeLeds[i], LOW);
+  }
+}
