@@ -16,6 +16,7 @@
 #define TIMER_DEBOUNCE_2 2
 #define TIMER_DEBOUNCE_3 3
 #define TIMER_DISPLAY_LOOP 4
+#define TIMER_CURRENT_TIME 5
 
 #define LEDS_AMOUNT 4
 #define INTERNAL_MODE_AMOUNT 8
@@ -48,6 +49,8 @@ static int internalMode = 0;
 static const int modeByInternalMode[INTERNAL_MODE_AMOUNT] = {0, 1, 2, 3, 3, 4, 4, 5};
 static const int ledsByMode[MODE_AMOUNT][MAX_SIMULTANEOUS_MODE_LEDS] = {{LED1, null}, {LED2, null}, {LED3, null}, {LED4, null}, {LED1, LED2}, {LED2, LED3}};
 
+static ClockTime currentTime = {0, 0};
+
 static void debouncedButtonChanged();
 
 static void buttonChanged(int pin, int value);
@@ -65,12 +68,14 @@ void appinit(void) {
   pinMode(LED2, OUTPUT);
   pinMode(LED3, OUTPUT);
   pinMode(LED4, OUTPUT);
-  
   button_listen(KEY3);
+  
   digitalWrite(LED1, LOW);
   digitalWrite(LED2, HIGH);
   digitalWrite(LED3, HIGH);
   digitalWrite(LED4, HIGH);
+
+  timer_set(TIMER_CURRENT_TIME, 60 * 1000);
 }
 
 void button_changed(int p, int v) {
@@ -104,6 +109,17 @@ void timer_expired(int timer) {
       writeNumberToSegment(2, displayTime.minutes / 10);
       writeNumberToSegment(3, displayTime.minutes % 10);
       timer_set(TIMER_DISPLAY_LOOP, 0);
+      break;
+    case TIMER_CURRENT_TIME:
+      currentTime.minutes += 1;
+      if (currentTime.minutes >= 60) {
+        currentTime.minutes = 0;
+        currentTime.hours += 1;
+        if (currentTime.hours >= 24) {
+          currentTime.hours = 0;
+        }
+      }
+      timer_set(TIMER_CURRENT_TIME, 60 * 1000);
       break;
   }
 }
