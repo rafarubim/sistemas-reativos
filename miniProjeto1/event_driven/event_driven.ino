@@ -21,8 +21,14 @@ void button_listen(int pin)
 void timer_set(int timer, int ms)
 {
   int timerInx = timer - 1;
-  timerStart[timerInx] = millis();
-  timerDuration[timerInx] = (unsigned int) ms;
+  if (ms >= 0) {
+    timerStart[timerInx] = millis();
+    timerDuration[timerInx] = (unsigned int) ms;
+  }
+  else {
+    timerStart[timerInx] = -1;
+    timerDuration[timerInx] = -1;
+  }
 }
 
 /* Programa principal: */
