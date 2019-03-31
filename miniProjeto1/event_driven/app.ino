@@ -24,11 +24,15 @@ static const byte SEGMENT_SELECT[] = {0xF1,0xF2,0xF4,0xF8};
 void writeNumberToSegment(byte segment, byte value);
 /* <<< */
 
+typedef struct ClockTimeStruct {
+ int minutes;
+ int hours;
+} ClockTime;
+
 static int isDebounceBlocked[3] = {0, 0, 0};
 static const int timerByDebounceInx[3] = {TIMER_DEBOUNCE_1, TIMER_DEBOUNCE_2, TIMER_DEBOUNCE_3};
 
-static int displayMinutes = 0;
-static int displayHours = 0;
+static ClockTime displayTime = {0, 0};
 
 static void debouncedButtonChanged();
 
@@ -69,10 +73,10 @@ void timer_expired(int timer) {
       isDebounceBlocked[DEBOUNCE_3_INDEX] = 0;
       break;
     case TIMER_DISPLAY_LOOP:
-      writeNumberToSegment(0, displayHours / 10);
-      writeNumberToSegment(1, displayHours % 10);
-      writeNumberToSegment(2, displayMinutes / 10);
-      writeNumberToSegment(3, displayMinutes % 10);
+      writeNumberToSegment(0, displayTime.hours / 10);
+      writeNumberToSegment(1, displayTime.hours % 10);
+      writeNumberToSegment(2, displayTime.minutes / 10);
+      writeNumberToSegment(3, displayTime.minutes % 10);
       timer_set(TIMER_DISPLAY_LOOP, 0);
       break;
   }
