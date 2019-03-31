@@ -42,7 +42,7 @@ typedef struct ClockTimeStruct {
 static int isDebounceBlocked[DEBOUNCES_AMOUNT] = {0, 0, 0};
 static const int timerByDebounceInx[DEBOUNCES_AMOUNT] = {TIMER_DEBOUNCE_1, TIMER_DEBOUNCE_2, TIMER_DEBOUNCE_3};
 
-static ClockTime displayTime = {0, 0};
+static ClockTime* displayTime = null;
 static const int allLeds[LEDS_AMOUNT] = {LED1, LED2, LED3, LED4};
 
 static int internalMode = 0;
@@ -50,6 +50,8 @@ static const int modeByInternalMode[INTERNAL_MODE_AMOUNT] = {0, 1, 2, 3, 3, 4, 4
 static const int ledsByMode[MODE_AMOUNT][MAX_SIMULTANEOUS_MODE_LEDS] = {{LED1, null}, {LED2, null}, {LED3, null}, {LED4, null}, {LED1, LED2}, {LED2, LED3}};
 
 static ClockTime currentTime = {0, 0};
+
+static const ClockTime* displayPointerByInternalMode[INTERNAL_MODE_AMOUNT] = {&currentTime, null, null, null, null, null, null, null};
 
 static void debouncedButtonChanged();
 
@@ -74,6 +76,7 @@ void appinit(void) {
   digitalWrite(LED2, HIGH);
   digitalWrite(LED3, HIGH);
   digitalWrite(LED4, HIGH);
+  displayTime = displayPointerByInternalMode[internalMode];
 
   timer_set(TIMER_CURRENT_TIME, 60 * 1000);
 }
@@ -104,10 +107,12 @@ void timer_expired(int timer) {
       isDebounceBlocked[DEBOUNCE_3_INDEX] = 0;
       break;
     case TIMER_DISPLAY_LOOP:
-      writeNumberToSegment(0, displayTime.hours / 10);
-      writeNumberToSegment(1, displayTime.hours % 10);
-      writeNumberToSegment(2, displayTime.minutes / 10);
-      writeNumberToSegment(3, displayTime.minutes % 10);
+      if (displayTime != null) {
+        writeNumberToSegment(0, displayTime->hours / 10);
+        writeNumberToSegment(1, displayTime->hours % 10);
+        writeNumberToSegment(2, displayTime->minutes / 10);
+        writeNumberToSegment(3, displayTime->minutes % 10);
+      }
       timer_set(TIMER_DISPLAY_LOOP, 0);
       break;
     case TIMER_CURRENT_TIME:
@@ -171,4 +176,5 @@ static void nextInternalMode() {
   for (int i = 0; i < MAX_SIMULTANEOUS_MODE_LEDS; i++) {
     digitalWrite(modeLeds[i], LOW);
   }
+  displayTime = displayPointerByInternalMode[internalMode];
 }
