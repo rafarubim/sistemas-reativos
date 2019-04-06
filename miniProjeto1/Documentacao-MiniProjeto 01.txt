@@ -1,0 +1,48 @@
+Gabriel Busquim - 1510549 
+Rafael Rubim - 1511068
+
+MiniProjeto 1: Relógio Despertador com Arduíno e placa multifunção
+
+Funcionamento:
+
+Os Leds indicam em qual modo está o relógio despertador.
+Foi utilizada a seguinte configuração para cada modo:
+
+Modo 1 -> Led 1 aceso 
+Modo 2 -> Led 2 aceso 
+Modo 3 -> Led 3 aceso 
+Modo 4 -> Led 4 aceso 
+Modo 5 -> Leds 1 e 2 acesos 
+Modo 6 -> Leds 2 e 3 acesos
+
+Caso os botões 1 e 3 sejam pressionados simultaneamente (dentro de 500ms), o relógio vai para o Modo 1.
+
+Descrição de cada modo:
+
+Modo 1: Este modo mostra o horário atual.Quando o programa é carregado, o display de 7 segmentos mostra o horário default (00:00). 
+Caso o botão 3 seja pressionado, o relógio avança para o Modo 2.
+
+Modo 2: Este modo mostra o horário atual, mas com o alarme ligado. O horário default do alarme é 23:59. Apenas quando o relógio está, neste modo,
+o alarme pode tocar. Apertar o botão 2 o faz parar de tocar. Caso o botão 3 seja pressionado, o relógio avança para o Modo 3.
+
+Modo 3: Este modo mostra o horário programado para o alarme tocar. Caso o horário do alarme ainda não tenha sido acertado, 
+o display de 7 segmentos mostra o horário de alarme default (23:59)). Caso o botão 3 seja pressionado, o relógio avança para o Modo 4.
+
+Modo 4: Este modo permite alterar o horário do relógio. Assim que ele entra neste modo, é possível alterar as horas (que começam a piscar).
+Cada vez que o botão 2 é apertado, aumenta-se em 1 seu valor. Quando o botão 1 é apertado, seu valor é diminuído de 1.
+Caso o botão 3 seja apertado, torna-se possível alterar os minutos (que começam a piscar), sendo novamente possível aumentar ou diminuir seu valor através
+dos botões 2 e 1,respectivamente. 
+Se 10 segundos se passarem sem que nada tenha sido pressionado enquanto o relógio está neste modo, ele volta para o Modo 1.
+Caso o botão 3 seja pressionado novamente, o relógio avança para o Modo 5.
+
+Modo 5: Este modo permite alterar o horário do alarme. Assim que o relógio entra neste modo, é possível alterar as horas do alarme (que começam a piscar).
+Cada vez que o botão 2 é apertado, aumenta-se em 1 seu valor. Quando o botão 1 é apertado, seu valor é diminuído de 1.
+Caso o botão 3 seja apertado, torna-se possível alterar os minutos (que começam a piscar), sendo novamente possível aumentar ou diminuir seu valor através
+dos botões 2 e 1,respectivamente. 
+Se 10 segundos se passarem sem que nada tenha sido pressinoado enquanto o relógio está neste modo, ele volta para o Modo 1.
+Caso o botão 3 seja pressionado novamente, o relógio avança para o Modo 5.
+
+Modo 6: Este modo é um cronômetro, funcionalidade adicional criada por nós. Ele mostra o tempo decorrido em minutos e segundos.
+Para iniciar o cronômetro, deve-se apertar o botão 2. O mesmo botão pausa o cronômetro. 
+O botão 1 reseta o cronômetro, fazendo o tempo mostrado voltar a 00:00. 
+Caso o botão 3 seja pressionado, o relógio retorna para o Modo 1. O cronômetro conta o tempo decorrido mesmo que já não se esteja mais no modo 6.
