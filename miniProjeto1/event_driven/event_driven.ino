@@ -4,6 +4,15 @@
 
 #define MAX_TIMERS 10
 
+void debug(char* str, ...) {
+  char buff[100];
+  va_list args;
+  va_start(args, str);
+  vsprintf(buff, str, args);
+  Serial.print(buff);
+  va_end(args);
+}
+
 static int buttonStates[3] = {-1, -1, -1};
 static unsigned long timerStart[MAX_TIMERS];
 static unsigned long timerDuration[MAX_TIMERS];
@@ -34,6 +43,7 @@ void timer_set(int timer, int ms)
 /* Programa principal: */
 void setup()
 {
+  Serial.begin(9600);
   for (int i = 0; i < MAX_TIMERS; i++) {
     timerStart[i] = -1;
     timerDuration[i] = -1;
