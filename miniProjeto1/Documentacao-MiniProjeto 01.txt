@@ -22,11 +22,10 @@ Descrição de cada modo:
 Modo 1: Este modo mostra o horário atual.Quando o programa é carregado, o display de 7 segmentos mostra o horário default (00:00). 
 Caso o botão 3 seja pressionado, o relógio avança para o Modo 2.
 
-Modo 2: Este modo mostra o horário atual, mas com o alarme ligado. O horário default do alarme é 23:59. Apenas quando o relógio está, neste modo,
-o alarme pode tocar. Apertar o botão 2 o faz parar de tocar. Caso o botão 3 seja pressionado, o relógio avança para o Modo 3.
+Modo 2: Este modo mostra o horário atual, mas com o alarme ligado. O horário default do alarme é 23:59. Apenas quando o relógio está neste modo,o alarme pode tocar. Apertar o botão 2 o faz parar de tocar. Caso o botão 3 seja pressionado, o relógio avança para o Modo 3.
 
 Modo 3: Este modo mostra o horário programado para o alarme tocar. Caso o horário do alarme ainda não tenha sido acertado, 
-o display de 7 segmentos mostra o horário de alarme default (23:59)). Caso o botão 3 seja pressionado, o relógio avança para o Modo 4.
+o display de 7 segmentos mostra o horário de alarme default (23:59). Caso o botão 3 seja pressionado, o relógio avança para o Modo 4.
 
 Modo 4: Este modo permite alterar o horário do relógio. Assim que ele entra neste modo, é possível alterar as horas (que começam a piscar).
 Cada vez que o botão 2 é apertado, aumenta-se em 1 seu valor. Quando o botão 1 é apertado, seu valor é diminuído de 1.
@@ -40,7 +39,7 @@ Cada vez que o botão 2 é apertado, aumenta-se em 1 seu valor. Quando o botão 
 Caso o botão 3 seja apertado, torna-se possível alterar os minutos (que começam a piscar), sendo novamente possível aumentar ou diminuir seu valor através
 dos botões 2 e 1,respectivamente. 
 Se 10 segundos se passarem sem que nada tenha sido pressinoado enquanto o relógio está neste modo, ele volta para o Modo 1.
-Caso o botão 3 seja pressionado novamente, o relógio avança para o Modo 5.
+Caso o botão 3 seja pressionado novamente, o relógio avança para o Modo 6.
 
 Modo 6: Este modo é um cronômetro, funcionalidade adicional criada por nós. Ele mostra o tempo decorrido em minutos e segundos.
 Para iniciar o cronômetro, deve-se apertar o botão 2. O mesmo botão pausa o cronômetro. 
