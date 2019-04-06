@@ -2,7 +2,7 @@
 #include "pindefs.h"
 #include "app.h"
 
-#define MAX_TIMERS 10
+#define MAX_TIMERS 11
 
 void debug(char* str, ...) {
   char buff[100];

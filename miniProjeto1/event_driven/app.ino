@@ -21,6 +21,8 @@
 #define TIMER_STOPWATCH 7
 #define TIMER_RESET_MODE 8
 #define TIMER_BEEP_ALARM 9
+#define TIMER_BUTTON_1_FRAME 10
+#define TIMER_BUTTON_3_FRAME 11
 
 #define SECOND_IN_MS 1000ul
 #define MINUTE_IN_MS 60000ul
@@ -37,6 +39,7 @@
 #define ALARM_BEEP_OFF_TIME_MS 200ul
 
 #define RESET_MODE_IDLE_TIME_MS 10000ul
+#define MULTI_PRESS_TIME_FRAME 500ul
 
 /* >>> Copied from internet */
 #define LATCH_DIO 4
@@ -52,6 +55,9 @@ void writeNumberToSegment(byte segment, byte value);
 static unsigned char displayBlinkMask[] = {0, 0, 0, 0};
 static unsigned char isDisplayBlinking = 0;
 static unsigned char isAlarmBeeping = 0;
+
+static unsigned char isInButton1TimeFrame = 0;
+static unsigned char isInButton3TimeFrame = 0;
 
 typedef struct ClockTimeStruct {
  int hours;
@@ -95,6 +101,7 @@ static const int ledsByMode[MODE_AMOUNT][MAX_SIMULTANEOUS_MODE_LEDS] = {{LED1, n
 static ClockTime currentTime = {0, 0};
 static ClockTime alarmTime = {23, 59};
 static ClockTime stopwatchTime = {0, 0};
+static ClockTime stopwatchTimeBackup = {0, 0};
 
 static const ClockTime* displayPointerByInternalMode[INTERNAL_MODE_AMOUNT] = {&currentTime, &currentTime, &alarmTime, &currentTime, &currentTime, &alarmTime, &alarmTime, &stopwatchTime};
 
@@ -106,6 +113,7 @@ static void buttonChanged(int pin, int value);
 
 static void setInternalMode(int newInternalMode);
 static int getNextInternalMode(int internalMode);
+static int getPreviousInternalMode(int internalMode);
 static void setModeLeds(int internalMode);
 static void setInternalModeDisplay(int internalMode);
 static void updateInternalModeTimers(int internalMode);
@@ -213,7 +221,6 @@ void timer_expired(int timer) {
       timer_set(TIMER_STOPWATCH, SECOND_IN_MS);
       break;
     case TIMER_RESET_MODE:
-      int internalModeBefore = internalMode;
       setInternalMode(0);
       break;
   }
@@ -231,6 +238,12 @@ void timer_expired(int timer) {
         digitalWrite(BUZZ, HIGH);
         timer_set(TIMER_BEEP_ALARM, ALARM_BEEP_OFF_TIME_MS);
       }
+      break;
+    case TIMER_BUTTON_1_FRAME:
+      isInButton1TimeFrame = 0;
+      break;
+    case TIMER_BUTTON_3_FRAME:
+      isInButton3TimeFrame = 0;
       break;
   }
 }
@@ -254,6 +267,9 @@ static void buttonChanged(int pin, int value) {
             alarmTime.decreaseMinute();
             break;
           case 7:
+            // Save backup to restore in case the user uses the [button 1 + button 3] combo
+            stopwatchTimeBackup = stopwatchTime;
+            
             stopwatchTime = {0, 0};
             break;
         }
@@ -308,6 +324,56 @@ static void buttonChanged(int pin, int value) {
         break;
     }
   }
+
+  // Pressing buttons 1 or 3 will begin a time frame countdown
+  switch(pin) {
+    case KEY1:
+      if (pressed) {
+        isInButton1TimeFrame = 1;
+        timer_set(TIMER_BUTTON_1_FRAME, MULTI_PRESS_TIME_FRAME);
+      } else {
+        isInButton1TimeFrame = 0;
+      }
+      break;
+    case KEY3:
+      if (pressed) {
+        isInButton3TimeFrame = 1;
+        timer_set(TIMER_BUTTON_3_FRAME, MULTI_PRESS_TIME_FRAME);
+      } else {
+        isInButton3TimeFrame = 0;
+      }
+      break;
+  }
+
+  // Combo [button 1 + button 3]
+  if (isInButton1TimeFrame && isInButton3TimeFrame) {
+    isInButton1TimeFrame = isInButton3TimeFrame = 0;
+
+    int internalModeValueWhenButton1Pressed = 
+      pin == KEY1 ? internalMode :
+      getPreviousInternalMode(internalMode);
+
+    // Restore previous actions performed by button 1
+    switch(internalModeValueWhenButton1Pressed) {
+      case 3:
+        currentTime.increaseHour();
+        break;
+      case 4:
+        currentTime.increaseMinute();
+        break;
+      case 5:
+        alarmTime.increaseHour();
+        break;
+      case 6:
+        alarmTime.increaseMinute();
+        break;
+      case 7:
+        stopwatchTime = stopwatchTimeBackup;
+        break;
+    }
+    
+    setInternalMode(0);
+  }
 }
 
 void debouncedButtonChanged(int debounceInx, int pin, int value) {
@@ -353,6 +419,14 @@ static int getNextInternalMode(int internalMode) {
   internalMode++;
   if (internalMode >= INTERNAL_MODE_AMOUNT) {
     internalMode = 0;
+  }
+  return internalMode;
+}
+
+static int getPreviousInternalMode(int internalMode) {
+  internalMode--;
+  if (internalMode < 0) {
+    internalMode = INTERNAL_MODE_AMOUNT - 1;
   }
   return internalMode;
 }
