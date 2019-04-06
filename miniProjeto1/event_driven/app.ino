@@ -16,12 +16,18 @@
 #define TIMER_DEBOUNCE_2 2
 #define TIMER_DEBOUNCE_3 3
 #define TIMER_DISPLAY_LOOP 4
-#define TIMER_CURRENT_TIME 5
+#define TIMER_BLINK_DISPLAY 5
+#define TIMER_CURRENT_TIME 6
+
+#define MINUTE_IN_MS 60000ul
 
 #define LEDS_AMOUNT 4
 #define INTERNAL_MODE_AMOUNT 8
 #define MODE_AMOUNT 6
 #define MAX_SIMULTANEOUS_MODE_LEDS 2
+
+#define DISPLAY_BLINK_ON_TIME_MS 500
+#define DISPLAY_BLINK_OFF_TIME_MS 250
 
 /* >>> Copied from internet */
 #define LATCH_DIO 4
@@ -33,6 +39,9 @@ static const byte SEGMENT_SELECT[] = {0xF1,0xF2,0xF4,0xF8};
 
 void writeNumberToSegment(byte segment, byte value);
 /* <<< */
+
+static unsigned char displayBlinkMask[] = {0, 0, 0, 0};
+static unsigned char isBlinking = 0;
 
 typedef struct ClockTimeStruct {
  int minutes;
@@ -50,13 +59,19 @@ static const int modeByInternalMode[INTERNAL_MODE_AMOUNT] = {0, 1, 2, 3, 3, 4, 4
 static const int ledsByMode[MODE_AMOUNT][MAX_SIMULTANEOUS_MODE_LEDS] = {{LED1, null}, {LED2, null}, {LED3, null}, {LED4, null}, {LED1, LED2}, {LED2, LED3}};
 
 static ClockTime currentTime = {0, 0};
+static ClockTime alarmTime = {0, 0};
+static ClockTime stopWatchTime = {0, 0};
 
-static const ClockTime* displayPointerByInternalMode[INTERNAL_MODE_AMOUNT] = {&currentTime, null, null, null, null, null, null, null};
+static const ClockTime* displayPointerByInternalMode[INTERNAL_MODE_AMOUNT] = {&currentTime, &currentTime, &alarmTime, &currentTime, &currentTime, &alarmTime, &alarmTime, &stopWatchTime};
 
 static void debouncedButtonChanged();
-
+void writeBlankToSegment(byte segment);
 static void buttonChanged(int pin, int value);
+
 static void nextInternalMode();
+static int getNextInternalMode(int internalMode);
+static void setModeLeds(int internalMode);
+static void setInternalModeDisplay(int internalMode);
 
 void appinit(void) {
   /* >>> Copied from internet */
@@ -65,6 +80,7 @@ void appinit(void) {
   pinMode(DATA_DIO,OUTPUT);
   /* <<< */
   timer_set(TIMER_DISPLAY_LOOP, 0);
+  timer_set(TIMER_BLINK_DISPLAY, DISPLAY_BLINK_ON_TIME_MS);
 
   pinMode(LED1, OUTPUT);
   pinMode(LED2, OUTPUT);
@@ -76,8 +92,9 @@ void appinit(void) {
   digitalWrite(LED2, HIGH);
   digitalWrite(LED3, HIGH);
   digitalWrite(LED4, HIGH);
-  displayTime = displayPointerByInternalMode[internalMode];
-  timer_set(TIMER_CURRENT_TIME, 60000ul);
+  
+  setInternalModeDisplay(internalMode);
+  timer_set(TIMER_CURRENT_TIME, MINUTE_IN_MS);
 }
 
 void button_changed(int p, int v) {
@@ -107,10 +124,20 @@ void timer_expired(int timer) {
       break;
     case TIMER_DISPLAY_LOOP:
       if (displayTime != null) {
-        writeNumberToSegment(0, displayTime->hours / 10);
-        writeNumberToSegment(1, displayTime->hours % 10);
-        writeNumberToSegment(2, displayTime->minutes / 10);
-        writeNumberToSegment(3, displayTime->minutes % 10);
+        // Iterate over each display segment
+        for (int i = 0; i < 4; i++) {
+          if (displayBlinkMask[i] && isBlinking) {
+            writeBlankToSegment(i);
+          } else {
+            // Number to display in the current segment
+            int displayNumber =
+              i == 0 ? displayTime->hours / 10 :
+              i == 1 ? displayTime->hours % 10 :
+              i == 2 ? displayTime->minutes / 10 :
+              displayTime->minutes % 10;
+            writeNumberToSegment(i, displayNumber);
+          }
+        }
       }
       timer_set(TIMER_DISPLAY_LOOP, 0);
       break;
@@ -123,7 +150,15 @@ void timer_expired(int timer) {
           currentTime.hours = 0;
         }
       }
-      timer_set(TIMER_CURRENT_TIME, 60000ul);
+      timer_set(TIMER_CURRENT_TIME, MINUTE_IN_MS);
+      break;
+    case TIMER_BLINK_DISPLAY:
+      isBlinking = !isBlinking;
+      if (isBlinking) {
+        timer_set(TIMER_BLINK_DISPLAY, DISPLAY_BLINK_OFF_TIME_MS);
+      } else {
+        timer_set(TIMER_BLINK_DISPLAY, DISPLAY_BLINK_ON_TIME_MS);
+      }
       break;
   }
 }
@@ -162,11 +197,29 @@ void writeNumberToSegment(byte segment, byte value)
 }
 /* <<< */
 
+void writeBlankToSegment(byte segment)
+{
+  digitalWrite(LATCH_DIO, LOW);
+  shiftOut(DATA_DIO, CLK_DIO, MSBFIRST, 0xFF);
+  shiftOut(DATA_DIO, CLK_DIO, MSBFIRST, SEGMENT_SELECT[segment]);
+  digitalWrite(LATCH_DIO, HIGH);
+}
+
 static void nextInternalMode() {
+  internalMode = getNextInternalMode(internalMode);
+  setModeLeds(internalMode);
+  setInternalModeDisplay(internalMode);
+}
+
+static int getNextInternalMode(int internalMode) {
   internalMode++;
   if (internalMode >= INTERNAL_MODE_AMOUNT) {
     internalMode = 0;
   }
+  return internalMode;
+}
+
+static void setModeLeds(int internalMode) {
   for (int i = 0; i < LEDS_AMOUNT; i++) {
     digitalWrite(allLeds[i], HIGH);
   }
@@ -175,5 +228,21 @@ static void nextInternalMode() {
   for (int i = 0; i < MAX_SIMULTANEOUS_MODE_LEDS; i++) {
     digitalWrite(modeLeds[i], LOW);
   }
+}
+
+static void setInternalModeDisplay(int internalMode) {
   displayTime = displayPointerByInternalMode[internalMode];
+  for (int i = 0; i < 4; i++) {
+    displayBlinkMask[i] = 0;
+  }
+  switch(internalMode) {
+    case 3: case 5:
+      displayBlinkMask[0] = 1;
+      displayBlinkMask[1] = 1;
+      break;
+    case 4: case 6:
+      displayBlinkMask[2] = 1;
+      displayBlinkMask[3] = 1;
+      break;
+  }
 }
