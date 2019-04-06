@@ -20,6 +20,7 @@
 #define TIMER_CURRENT_TIME 6
 #define TIMER_STOPWATCH 7
 #define TIMER_RESET_MODE 8
+#define TIMER_BEEP_ALARM 9
 
 #define SECOND_IN_MS 1000ul
 #define MINUTE_IN_MS 60000ul
@@ -29,8 +30,11 @@
 #define MODE_AMOUNT 6
 #define MAX_SIMULTANEOUS_MODE_LEDS 2
 
-#define DISPLAY_BLINK_ON_TIME_MS 500
-#define DISPLAY_BLINK_OFF_TIME_MS 250
+#define DISPLAY_BLINK_ON_TIME_MS 500ul
+#define DISPLAY_BLINK_OFF_TIME_MS 250ul
+
+#define ALARM_BEEP_ON_TIME_MS 200ul
+#define ALARM_BEEP_OFF_TIME_MS 200ul
 
 #define RESET_MODE_IDLE_TIME_MS 10000ul
 
@@ -46,11 +50,12 @@ void writeNumberToSegment(byte segment, byte value);
 /* <<< */
 
 static unsigned char displayBlinkMask[] = {0, 0, 0, 0};
-static unsigned char isBlinking = 0;
+static unsigned char isDisplayBlinking = 0;
+static unsigned char isAlarmBeeping = 0;
 
 typedef struct ClockTimeStruct {
- int minutes;
  int hours;
+ int minutes;
  void increaseMinute() {
   minutes++;
   if (minutes >= 60) {
@@ -88,7 +93,7 @@ static const int modeByInternalMode[INTERNAL_MODE_AMOUNT] = {0, 1, 2, 3, 3, 4, 4
 static const int ledsByMode[MODE_AMOUNT][MAX_SIMULTANEOUS_MODE_LEDS] = {{LED1, null}, {LED2, null}, {LED3, null}, {LED4, null}, {LED1, LED2}, {LED2, LED3}};
 
 static ClockTime currentTime = {0, 0};
-static ClockTime alarmTime = {0, 0};
+static ClockTime alarmTime = {23, 59};
 static ClockTime stopwatchTime = {0, 0};
 
 static const ClockTime* displayPointerByInternalMode[INTERNAL_MODE_AMOUNT] = {&currentTime, &currentTime, &alarmTime, &currentTime, &currentTime, &alarmTime, &alarmTime, &stopwatchTime};
@@ -104,6 +109,8 @@ static int getNextInternalMode(int internalMode);
 static void setModeLeds(int internalMode);
 static void setInternalModeDisplay(int internalMode);
 static void updateInternalModeTimers(int internalMode);
+static void turnAlarmOn();
+static void turnAlarmOff();
 
 void appinit(void) {
   /* >>> Copied from internet */
@@ -118,6 +125,9 @@ void appinit(void) {
   pinMode(LED2, OUTPUT);
   pinMode(LED3, OUTPUT);
   pinMode(LED4, OUTPUT);
+
+  pinMode(BUZZ, OUTPUT);
+  
   button_listen(KEY1);
   button_listen(KEY2);
   button_listen(KEY3);
@@ -126,6 +136,8 @@ void appinit(void) {
   digitalWrite(LED2, HIGH);
   digitalWrite(LED3, HIGH);
   digitalWrite(LED4, HIGH);
+
+  digitalWrite(BUZZ, HIGH);
   
   setInternalModeDisplay(internalMode);
   timer_set(TIMER_CURRENT_TIME, MINUTE_IN_MS);
@@ -160,7 +172,7 @@ void timer_expired(int timer) {
       if (displayTime != null) {
         // Iterate over each display segment
         for (int i = 0; i < 4; i++) {
-          if (displayBlinkMask[i] && isBlinking) {
+          if (displayBlinkMask[i] && isDisplayBlinking) {
             writeBlankToSegment(i);
           } else {
             // Number to display in the current segment
@@ -180,11 +192,14 @@ void timer_expired(int timer) {
       if (currentTime.minutes == 0) {
         currentTime.increaseHour();
       }
+      if (internalMode == 1 && currentTime.minutes == alarmTime.minutes && currentTime.hours == alarmTime.hours) {
+        turnAlarmOn();
+      }
       timer_set(TIMER_CURRENT_TIME, MINUTE_IN_MS);
       break;
     case TIMER_BLINK_DISPLAY:
-      isBlinking = !isBlinking;
-      if (isBlinking) {
+      isDisplayBlinking = !isDisplayBlinking;
+      if (isDisplayBlinking) {
         timer_set(TIMER_BLINK_DISPLAY, DISPLAY_BLINK_OFF_TIME_MS);
       } else {
         timer_set(TIMER_BLINK_DISPLAY, DISPLAY_BLINK_ON_TIME_MS);
@@ -200,6 +215,22 @@ void timer_expired(int timer) {
     case TIMER_RESET_MODE:
       int internalModeBefore = internalMode;
       setInternalMode(0);
+      break;
+  }
+  
+  // The switch was split in 2 because apparently the arduino doesn't have enough
+  // memory to fit all its cases. Congrats arduino you moron 🙃
+  
+  switch(timer) {
+    case TIMER_BEEP_ALARM:
+      isAlarmBeeping = !isAlarmBeeping;
+      if (isAlarmBeeping) {
+        digitalWrite(BUZZ, LOW);
+        timer_set(TIMER_BEEP_ALARM, ALARM_BEEP_ON_TIME_MS);
+      } else {
+        digitalWrite(BUZZ, HIGH);
+        timer_set(TIMER_BEEP_ALARM, ALARM_BEEP_OFF_TIME_MS);
+      }
       break;
   }
 }
@@ -223,8 +254,7 @@ static void buttonChanged(int pin, int value) {
             alarmTime.decreaseMinute();
             break;
           case 7:
-            stopwatchTime.minutes = 0;
-            stopwatchTime.hours = 0;
+            stopwatchTime = {0, 0};
             break;
         }
       }
@@ -232,6 +262,9 @@ static void buttonChanged(int pin, int value) {
     case KEY2:
       if (pressed) {
         switch(internalMode) {
+          case 1:
+            turnAlarmOff();
+            break;
           case 3:
             currentTime.increaseHour();
             break;
@@ -370,4 +403,23 @@ static void updateInternalModeTimers(int internalModeBefore, int newInternalMode
       timer_set(TIMER_RESET_MODE, RESET_MODE_IDLE_TIME_MS);
       break;
   }
+
+  // Ring alarm if needed
+  if (newInternalMode == 1 && currentTime.minutes == alarmTime.minutes && currentTime.hours == alarmTime.hours) {
+    turnAlarmOn();
+  } else if (newInternalMode != 1){
+    turnAlarmOff();
+  }
+}
+
+static void turnAlarmOn() {
+  isAlarmBeeping = 1;
+  digitalWrite(BUZZ, LOW);
+  timer_set(TIMER_BEEP_ALARM, ALARM_BEEP_ON_TIME_MS);
+}
+
+static void turnAlarmOff() {
+  isAlarmBeeping = 0;
+  digitalWrite(BUZZ, HIGH);
+  timer_cancel(TIMER_BEEP_ALARM);
 }
