@@ -46,6 +46,30 @@ static unsigned char isBlinking = 0;
 typedef struct ClockTimeStruct {
  int minutes;
  int hours;
+ void increaseMinute() {
+  minutes++;
+  if (minutes >= 60) {
+    minutes = 0;
+  }
+ }
+ void decreaseMinute() {
+  minutes--;
+  if (minutes <= 0) {
+    minutes = 59;
+  }
+ }
+ void increaseHour() {
+  hours++;
+  if (hours >= 24) {
+    hours = 0;
+  }
+ }
+ void decreaseHour() {
+  hours--;
+  if (hours <= 0) {
+    hours = 23;
+  }
+ }
 } ClockTime;
 
 static int isDebounceBlocked[DEBOUNCES_AMOUNT] = {0, 0, 0};
@@ -72,6 +96,7 @@ static void nextInternalMode();
 static int getNextInternalMode(int internalMode);
 static void setModeLeds(int internalMode);
 static void setInternalModeDisplay(int internalMode);
+static void updateInternalModeTimers(int internalMode);
 
 void appinit(void) {
   /* >>> Copied from internet */
@@ -86,6 +111,8 @@ void appinit(void) {
   pinMode(LED2, OUTPUT);
   pinMode(LED3, OUTPUT);
   pinMode(LED4, OUTPUT);
+  button_listen(KEY1);
+  button_listen(KEY2);
   button_listen(KEY3);
   
   digitalWrite(LED1, LOW);
@@ -166,6 +193,42 @@ void timer_expired(int timer) {
 static void buttonChanged(int pin, int value) {
   int pressed = !value;
   switch(pin) {
+    case KEY1:
+      if (pressed) {
+        switch(internalMode) {
+          case 3:
+            currentTime.decreaseHour();
+            break;
+          case 4:
+            currentTime.decreaseMinute();
+            break;
+          case 5:
+            alarmTime.decreaseHour();
+            break;
+          case 6:
+            alarmTime.decreaseMinute();
+            break;
+        }
+      }
+      break;
+    case KEY2:
+      if (pressed) {
+        switch(internalMode) {
+          case 3:
+            currentTime.increaseHour();
+            break;
+          case 4:
+            currentTime.increaseMinute();
+            break;
+          case 5:
+            alarmTime.increaseHour();
+            break;
+          case 6:
+            alarmTime.increaseMinute();
+            break;
+        }
+      }
+      break;
     case KEY3:
       if (pressed) {
         nextInternalMode();
@@ -209,6 +272,7 @@ static void nextInternalMode() {
   internalMode = getNextInternalMode(internalMode);
   setModeLeds(internalMode);
   setInternalModeDisplay(internalMode);
+  updateInternalModeTimers(internalMode);
 }
 
 static int getNextInternalMode(int internalMode) {
@@ -244,5 +308,14 @@ static void setInternalModeDisplay(int internalMode) {
       displayBlinkMask[2] = 1;
       displayBlinkMask[3] = 1;
       break;
+  }
+}
+
+static void updateInternalModeTimers(int internalMode) {
+  // Freeze/unfreeze current time
+  if (internalMode == 3) {
+    timer_cancel(TIMER_CURRENT_TIME);
+  } else if (internalMode == 5) {
+    timer_set(TIMER_CURRENT_TIME, MINUTE_IN_MS);
   }
 }
