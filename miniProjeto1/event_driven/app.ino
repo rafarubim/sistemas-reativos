@@ -18,7 +18,9 @@
 #define TIMER_DISPLAY_LOOP 4
 #define TIMER_BLINK_DISPLAY 5
 #define TIMER_CURRENT_TIME 6
+#define TIMER_STOPWATCH 7
 
+#define SECOND_IN_MS 1000ul
 #define MINUTE_IN_MS 60000ul
 
 #define LEDS_AMOUNT 4
@@ -84,9 +86,11 @@ static const int ledsByMode[MODE_AMOUNT][MAX_SIMULTANEOUS_MODE_LEDS] = {{LED1, n
 
 static ClockTime currentTime = {0, 0};
 static ClockTime alarmTime = {0, 0};
-static ClockTime stopWatchTime = {0, 0};
+static ClockTime stopwatchTime = {0, 0};
 
-static const ClockTime* displayPointerByInternalMode[INTERNAL_MODE_AMOUNT] = {&currentTime, &currentTime, &alarmTime, &currentTime, &currentTime, &alarmTime, &alarmTime, &stopWatchTime};
+static const ClockTime* displayPointerByInternalMode[INTERNAL_MODE_AMOUNT] = {&currentTime, &currentTime, &alarmTime, &currentTime, &currentTime, &alarmTime, &alarmTime, &stopwatchTime};
+
+static unsigned char isStopwatchRunning = 0;
 
 static void debouncedButtonChanged();
 void writeBlankToSegment(byte segment);
@@ -169,13 +173,9 @@ void timer_expired(int timer) {
       timer_set(TIMER_DISPLAY_LOOP, 0);
       break;
     case TIMER_CURRENT_TIME:
-      currentTime.minutes += 1;
-      if (currentTime.minutes >= 60) {
-        currentTime.minutes = 0;
-        currentTime.hours += 1;
-        if (currentTime.hours >= 24) {
-          currentTime.hours = 0;
-        }
+      currentTime.increaseMinute();
+      if (currentTime.minutes == 0) {
+        currentTime.increaseHour();
       }
       timer_set(TIMER_CURRENT_TIME, MINUTE_IN_MS);
       break;
@@ -186,6 +186,13 @@ void timer_expired(int timer) {
       } else {
         timer_set(TIMER_BLINK_DISPLAY, DISPLAY_BLINK_ON_TIME_MS);
       }
+      break;
+    case TIMER_STOPWATCH:
+      stopwatchTime.increaseMinute();
+      if (stopwatchTime.minutes == 0) {
+        stopwatchTime.increaseHour();
+      }
+      timer_set(TIMER_STOPWATCH, SECOND_IN_MS);
       break;
   }
 }
@@ -208,6 +215,10 @@ static void buttonChanged(int pin, int value) {
           case 6:
             alarmTime.decreaseMinute();
             break;
+          case 7:
+            stopwatchTime.minutes = 0;
+            stopwatchTime.hours = 0;
+            break;
         }
       }
       break;
@@ -225,6 +236,14 @@ static void buttonChanged(int pin, int value) {
             break;
           case 6:
             alarmTime.increaseMinute();
+            break;
+          case 7:
+            isStopwatchRunning = !isStopwatchRunning;
+            if (isStopwatchRunning) {
+              timer_set(TIMER_STOPWATCH, SECOND_IN_MS);
+            } else {
+              timer_cancel(TIMER_STOPWATCH);
+            }
             break;
         }
       }
