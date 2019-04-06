@@ -19,6 +19,7 @@
 #define TIMER_BLINK_DISPLAY 5
 #define TIMER_CURRENT_TIME 6
 #define TIMER_STOPWATCH 7
+#define TIMER_RESET_MODE 8
 
 #define SECOND_IN_MS 1000ul
 #define MINUTE_IN_MS 60000ul
@@ -30,6 +31,8 @@
 
 #define DISPLAY_BLINK_ON_TIME_MS 500
 #define DISPLAY_BLINK_OFF_TIME_MS 250
+
+#define RESET_MODE_IDLE_TIME_MS 10000ul
 
 /* >>> Copied from internet */
 #define LATCH_DIO 4
@@ -96,7 +99,7 @@ static void debouncedButtonChanged();
 void writeBlankToSegment(byte segment);
 static void buttonChanged(int pin, int value);
 
-static void nextInternalMode();
+static void setInternalMode(int newInternalMode);
 static int getNextInternalMode(int internalMode);
 static void setModeLeds(int internalMode);
 static void setInternalModeDisplay(int internalMode);
@@ -194,6 +197,10 @@ void timer_expired(int timer) {
       }
       timer_set(TIMER_STOPWATCH, SECOND_IN_MS);
       break;
+    case TIMER_RESET_MODE:
+      int internalModeBefore = internalMode;
+      setInternalMode(0);
+      break;
   }
 }
 
@@ -250,9 +257,23 @@ static void buttonChanged(int pin, int value) {
       break;
     case KEY3:
       if (pressed) {
-        nextInternalMode();
+        int nextInternalMode = getNextInternalMode(internalMode);
+        setInternalMode(nextInternalMode);
       }
       break;
+  }
+
+  // Pressing buttons 1 or 2 breaks the idleness
+  if (pressed) {
+    switch(pin) {
+      case KEY1: case KEY2:
+        switch(internalMode) {
+          case 3: case 4: case 5: case 6:
+            timer_set(TIMER_RESET_MODE, RESET_MODE_IDLE_TIME_MS);
+            break;
+        }
+        break;
+    }
   }
 }
 
@@ -287,11 +308,12 @@ void writeBlankToSegment(byte segment)
   digitalWrite(LATCH_DIO, HIGH);
 }
 
-static void nextInternalMode() {
-  internalMode = getNextInternalMode(internalMode);
-  setModeLeds(internalMode);
-  setInternalModeDisplay(internalMode);
-  updateInternalModeTimers(internalMode);
+static void setInternalMode(int newInternalMode) {
+  int internalModeBefore = internalMode;
+  internalMode = newInternalMode;
+  setModeLeds(newInternalMode);
+  setInternalModeDisplay(newInternalMode);
+  updateInternalModeTimers(internalModeBefore, newInternalMode);
 }
 
 static int getNextInternalMode(int internalMode) {
@@ -330,11 +352,22 @@ static void setInternalModeDisplay(int internalMode) {
   }
 }
 
-static void updateInternalModeTimers(int internalMode) {
+static void updateInternalModeTimers(int internalModeBefore, int newInternalMode) {
   // Freeze/unfreeze current time
-  if (internalMode == 3) {
+  if (internalMode == 3 || internalMode == 4) {
     timer_cancel(TIMER_CURRENT_TIME);
-  } else if (internalMode == 5) {
+  } else if ((internalModeBefore == 3 || internalModeBefore == 4) && newInternalMode != 3 && newInternalMode != 4) {
     timer_set(TIMER_CURRENT_TIME, MINUTE_IN_MS);
+  }
+
+  // Changing mode breaks the idleness
+  if (internalModeBefore != newInternalMode) {
+    timer_cancel(TIMER_RESET_MODE);
+  }
+  // Countdown to mode reset because of idleness
+  switch(newInternalMode) {
+    case 3: case 4: case 5: case 6:
+      timer_set(TIMER_RESET_MODE, RESET_MODE_IDLE_TIME_MS);
+      break;
   }
 }
