@@ -77,8 +77,7 @@ void appinit(void) {
   digitalWrite(LED3, HIGH);
   digitalWrite(LED4, HIGH);
   displayTime = displayPointerByInternalMode[internalMode];
-
-  timer_set(TIMER_CURRENT_TIME, 60 * 1000);
+  timer_set(TIMER_CURRENT_TIME, 60000ul);
 }
 
 void button_changed(int p, int v) {
@@ -124,7 +123,7 @@ void timer_expired(int timer) {
           currentTime.hours = 0;
         }
       }
-      timer_set(TIMER_CURRENT_TIME, 60 * 1000);
+      timer_set(TIMER_CURRENT_TIME, 60000ul);
       break;
   }
 }

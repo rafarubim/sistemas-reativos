@@ -14,6 +14,7 @@ void debug(char* str, ...) {
 }
 
 static int buttonStates[3] = {-1, -1, -1};
+static unsigned char timerActive[MAX_TIMERS];
 static unsigned long timerStart[MAX_TIMERS];
 static unsigned long timerDuration[MAX_TIMERS];
 
@@ -27,17 +28,18 @@ void button_listen(int pin)
   int inx = getPinIndex(pin);
   buttonStates[inx] = digitalRead(pin);
 }
-void timer_set(int timer, int ms)
+
+void timer_set(int timer, unsigned long ms)
 {
   int timerInx = timer - 1;
-  if (ms >= 0) {
-    timerStart[timerInx] = millis();
-    timerDuration[timerInx] = (unsigned int) ms;
-  }
-  else {
-    timerStart[timerInx] = -1;
-    timerDuration[timerInx] = -1;
-  }
+  timerStart[timerInx] = millis();
+  timerDuration[timerInx] = ms;
+  timerActive[timerInx] = 1;
+}
+
+void timer_cancel(int timer) {
+  int timerInx = timer - 1;
+  timerActive[timerInx] = 0;
 }
 
 /* Programa principal: */
@@ -45,8 +47,7 @@ void setup()
 {
   Serial.begin(9600);
   for (int i = 0; i < MAX_TIMERS; i++) {
-    timerStart[i] = -1;
-    timerDuration[i] = -1;
+    timerActive[i] = 0;
   }
   appinit();
 }
@@ -67,10 +68,9 @@ void loop()
   }
 
   for (int i = 0; i < MAX_TIMERS; i++) {
-    if (timerStart[i] != -1) {
+    if (timerActive[i]) {
       if (currentTime >= timerStart[i] + timerDuration[i]) {
-        timerStart[i] = -1;
-        timerDuration[i] = -1;
+        timerActive[i] = 0;
         timer_expired(i + 1);
       }
     }
