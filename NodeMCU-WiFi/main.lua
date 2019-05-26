@@ -1,21 +1,23 @@
 local mqtt = require("mqtt_library")
 
 function mqttcb(topic, message)
-   print("Received from topic: " .. topic .. " - message:" .. message)
-   controle = not controle
+    print("Received from topic: " .. topic .. " - message: " .. message)
+    if topic == 'rafaEGabs' and message == 'node' then
+      controle = not controle
+    end
 end
 
 function love.keypressed(key)
   if key == 'a' then
-    mqtt_client:publish("apertou-tecla", "a")
+    mqtt_client:publish("rafaEGabs", "lua")
   end
 end
 
 function love.load()
   controle = false
-  mqtt_client = mqtt.client.create("test.mosquitto.org", 1883, mqttcb)
-  mqtt_client:connect("rafaEGabsNode")
-  mqtt_client:subscribe({"apertou-tecla"})
+  mqtt_client = mqtt.client.create("85.119.83.194", 1883, mqttcb)
+  mqtt_client:connect("rafaEGabsLua")
+  mqtt_client:subscribe({"rafaEGabs"})
 end
 
 function love.draw()
@@ -27,4 +29,3 @@ end
 function love.update(dt)
   mqtt_client:handler()
 end
-  
