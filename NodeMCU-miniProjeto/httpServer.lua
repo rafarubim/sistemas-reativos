@@ -10,7 +10,9 @@ local function response(body, headers)
   for k, v in pairs(headers) do
     response = response .. k .. ': ' .. v .. '\n'
   end
-  response = response .. '\n' .. body
+  if body ~= '' then
+	response = response .. '\n' .. body .. '\n'
+  end
   return response
 end
 
@@ -33,11 +35,16 @@ local function receiver(sck, request)
   end
 
   local _, _, body = string.find(request, "HTTP/1.1.*\n\n(.*)")
+  
+  if not method or not path then
+	print('Request error')
+	sck:close() 
+	return
+  end
 
   local queryParams = {}
-  
   if queryString ~= nil then
-    for k, v in string.gmatch(queryString, "(%w+)=(%w+)") do
+    for k, v in string.gmatch(queryString, "(%w+)=([^&]+)") do
       queryParams[k] = v
     end
   end
@@ -76,7 +83,7 @@ local function receiver(sck, request)
   else
     response = httpServer.notFoundResponse()
   end
-
+  
   sck:send(response, 
     function()
       print("Response: " .. response) 

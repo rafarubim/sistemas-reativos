@@ -12,16 +12,17 @@ for _,ledi in ipairs (leds) do
 end
 
 for _,ledi in ipairs (leds) do
-  gpio.write(ledi, gpio.LOW);
+  gpio.write(ledi, gpio.LOW)
 end
 
-local function homePage(req)
-  print(req.queryParams.answer)
+local function answerPage(req)
+  req.body = req.body or ''
+  print("Body received: " .. req.body)
   gpio.write(led1, gpio.HIGH);
 
   return httpServer.okResponse()
 end
 
-httpServer.route('/', homePage)
+httpServer.route('/answer', answerPage)
 
 wiFi.connect('Rafa', 'rafagato', httpServer.start)
