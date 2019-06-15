@@ -43,7 +43,7 @@ function googleAssistantServer.open(openedCb)
     httpServer.start(openedCb)
   end
   print('Beginning connection...')
-  wiFi.connect('Rubim 2.4 EXT', 'rlraph1234567', internetConnected)
+  wiFi.connect('Rafa', 'rafagato', internetConnected)
 end
 
 return googleAssistantServer
