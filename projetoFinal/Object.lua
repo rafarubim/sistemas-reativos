@@ -1,7 +1,7 @@
 local Class = require 'Class'
 local Controls = require 'Controls'
 local tableUtils = require 'tableUtils'
-local debugUtils = require 'debugUtils'
+local Timer = require 'Timer'
 
 local Object = Class:extended({
   pos = {
@@ -13,7 +13,8 @@ local Object = Class:extended({
     ver = 0
   },
   dir = 0,
-  _currentSprite = nil
+  _currentSprite = nil,
+  _gotoTimer = nil,
 })
 
 function Object:constructor(pos)
@@ -34,6 +35,20 @@ function Object:getRelativePosAhead(distance, angle)
   }
 end
 
+function Object:gotoPos(x, y, time)
+  local deltaX = x - self.pos.x
+  local deltaY = y - self.pos.y
+  self.speed.hor = deltaX / time
+  self.speed.ver = deltaY / time
+  self._gotoTimer = Timer:new()
+  self._gotoTimer:whenFinished(function()
+    self.speed.hor = 0
+    self.speed.ver = 0
+    self._gotoTimer = nil
+  end)
+  self._gotoTimer:begin(time)
+end
+
 function Object:_willMove(dt)
   local moved = {
     pos = tableUtils.copy(self.pos)
@@ -50,8 +65,8 @@ function Object:_willUpdate(dt)
   return updated
 end
 
-function Object:controlPressed(control)
-  local handler = self._controlHandlers[control]
+function Object:controlEvent(control)
+  local handler = self._controlHandlers[Controls[control]]
   if handler then
     handler(self, control)
   end
@@ -76,12 +91,20 @@ function Object:update(dt)
   tableUtils.merge(self, updated)
   
   self:_updateDir(dt)
+  if self._gotoTimer then
+    self._gotoTimer:process()
+  end
 end
 
-function Object:draw()
+function Object:draw(xScale, yScale, imageXFactor, imageYFactor)
+  xScale = xScale or 1
+  yScale = yScale or 1
   if self._currentSprite then
     sWidth, sHeight = self._currentSprite:getDimensions()
-    love.graphics.draw(self._currentSprite, self.pos.x - sWidth/2, self.pos.y + sHeight/2, 0, 1, -1)
+    local objWidth = sWidth * imageXFactor^2 * xScale
+    local objHeight = sHeight * imageYFactor^2 * yScale
+    love.graphics.setColor(1,1,1,1)
+    love.graphics.draw(self._currentSprite, self.pos.x - objWidth/2, self.pos.y - objHeight/2, 0, xScale * imageXFactor^2, yScale * imageXFactor^2)
   else
     error("I don't know how to draw this object!", 2)
   end

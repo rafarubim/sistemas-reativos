@@ -1,14 +1,22 @@
 local tableUtils = require 'tableUtils'
 
 local Class = {}
+
+local weakMetatable = { __mode = 'k' }
+
 function Class:extended(extends)
   extends = extends or {}
-  rawset(self, "__index", function(t, k)
-    rawset(t, k, tableUtils.copyInstance(self[k]))
-    return rawget(t, k)
-  end)
+  local isNotMetatable = not rawget(self, '__index')
+  if isNotMetatable then
+    rawset(self, "__index", function(t, k)
+      rawset(t, k, tableUtils.copyInstance(self[k]))
+      return rawget(t, k)
+    end)
+  end
   setmetatable(extends, self)
   rawset(extends, '__proto', self)
+  local instancesTable = setmetatable({}, weakMetatable)
+  rawset(extends, '__instances', instancesTable)
   return extends
 end
 
@@ -23,6 +31,7 @@ end
 function Class:new(instance, ...)
   instance = self:extended(instance)
   instance:constructor(...)
+  self.__instances[#self.__instances+1] = instance
   return instance
 end
 
