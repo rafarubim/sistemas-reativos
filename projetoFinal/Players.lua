@@ -16,7 +16,7 @@ local Players = Class:extended({
 
 function Players:updatePosPlayers()
   local amount = #self.all
-  local leftCorner = -1.65
+  local leftCorner = -1.4
   local rightCorner = 1.95
   local farFromCorner = 1.1 ^ (-amount)
   local dist = rightCorner - leftCorner

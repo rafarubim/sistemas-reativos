@@ -16,12 +16,15 @@ local GameController = Class:extended({
 })
 
 local States = Enum:create()
-States:setValues({'CHOOSING', 'WAITING', 'FINISHED'})
+States:setValues({'LOBBY', 'CHOOSING', 'WAITING', 'FINISHED'})
 local Events = Enum:create()
 Events:setValues({'ALL_READY', 'DELAY_OVER', 'GAME_END', 'RESTART'})
 
-local initialState = States.CHOOSING
+local initialState = States.LOBBY
 local transitions = {
+  [States.LOBBY] = {
+    [Events.ALL_READY] = States.CHOOSING,
+  },
   [States.CHOOSING] = {
     [Events.ALL_READY] = States.WAITING,
     [Events.RESTART] = States.CHOOSING,
@@ -43,12 +46,27 @@ function GameController:constructor()
     if event == Events.RESTART then
       self:restart()
     elseif event == Events.DELAY_OVER then
-      self:restart()
     end
     if newState == States.CHOOSING then
+      for _, player in ipairs(self.players.all) do
+        player.isReady = false
+      end
       self:updateChoices()
     end
   end)
+end
+
+function GameController:ProcessResults()
+  local maxChoices = #self.choices
+  local chosen = setmetatable({}, {__index=function() return 0 end})
+  for _, player in ipairs(self.players.all) do
+    local choice = player.choice
+    if choice > maxChoices then
+      choice = maxChoices
+    end
+    chosen[choice] = chosen[choice] + 1
+  end
+  print(chosen[2])
 end
 
 local function round(x)
@@ -98,13 +116,14 @@ function GameController:restart()
 end
 
 function GameController:update()
-  if #self.players.all == 0 then
+  if #self.players.all < 3 then
     return
   end
   if self.timer then
     self.timer:process()
   end
-  if self._stateMachine.state == States.CHOOSING then
+  local state = self._stateMachine.state
+  if state == States.LOBBY or state == States.CHOOSING then
     local allReady = true
     for _, player in ipairs(self.players.all) do
       if not player.isReady then
@@ -113,12 +132,17 @@ function GameController:update()
       end
     end
     if allReady then
-      self.timer = Timer:new()
-      self.timer:whenFinished(function()
-        self._stateMachine:send(Events.DELAY_OVER)
-        self.timer = nil
-      end)
-      self.timer:begin(5)
+      if state == States.CHOOSING then
+        animationSeconds = 5
+        
+        self.timer = Timer:new()
+        self.timer:whenFinished(function()
+          self._stateMachine:send(Events.DELAY_OVER)
+          self.timer = nil
+        end)
+        self.timer:begin(animationSeconds)
+      end
+      
       self._stateMachine:send(Events.ALL_READY)
     end
   end
@@ -130,6 +154,10 @@ function GameController:loadChoiceButtonImage(imagePath)
 end
 
 function GameController:drawChoices(xScale, yScale, imageXFactor, imageYFactor, fontChoice, fontMeters)
+  if self._stateMachine.state ~= States.CHOOSING then
+    return
+  end
+  
   local amount = #self.choices
   local leftCorner = -1.75
   local rightCorner = 1.75
@@ -173,6 +201,32 @@ function GameController:drawChoices(xScale, yScale, imageXFactor, imageYFactor, 
     love.graphics.setFont(fontMeters)
     love.graphics.print(tostring(self.choices[inx]), xVal + adjustX, metersY + 0.03, 0, imageXFactor, -imageYFactor)
   end
+end
+
+function GameController:drawCurrentState(xScale, yScale, imageXFactor, imageYFactor, fontState)
+  love.graphics.setColor(0, 0, 0)
+  love.graphics.setFont(fontState)
+  local message1 = ''
+  local message2 = ''
+  local message3 = ''
+  local message4 = ''
+  local state = self._stateMachine.state
+  if state == States.LOBBY then
+    message1 = 'To begin, at least'
+    message2 = '3 players must'
+    message3 = 'be ready'
+  elseif state == States.CHOOSING then
+    message1 = 'Hey everyone!'
+    message2 = 'Choose how'
+    message3 = 'much you want'
+    message4 = 'to advance!'
+  elseif state == States.WAITING then
+    message1 = 'End of round!'
+  end
+  love.graphics.print(message1, -1.48, 0.7, 0, imageXFactor, -imageYFactor)
+  love.graphics.print(message2, -1.48, 0.6, 0, imageXFactor, -imageYFactor)
+  love.graphics.print(message3, -1.48, 0.5, 0, imageXFactor, -imageYFactor)
+  love.graphics.print(message4, -1.48, 0.4, 0, imageXFactor, -imageYFactor)
 end
 
 return GameController

@@ -55,15 +55,22 @@ local players = Players:new()
 local gameController = GameController:new()
 local gameplayFont = love.graphics.newFont(fontsPath .. '/gameplay.ttf', 24)
 local arcadeFont = love.graphics.newFont(fontsPath .. '/arcade.ttf', 24)
-local defaultFont = love.graphics.newFont(24)
+local defaultFont = love.graphics.newFont(18)
 
 local menuY = -0.06
+local sideMenuX = -0.97
 
 local bckg = Object:new()
 local menuPanel = Object:new({
   pos = {
     x = 0,
     y = (menuY-graphic.yLimit)/2
+  }
+})
+local sideMenuPanel = Object:new({
+  pos = {
+    x = (sideMenuX-graphic.xLimit)/2,
+    y = (graphic.yLimit+menuY)/2
   }
 })
 local flag = Object:new({
@@ -123,6 +130,7 @@ function love.load()
   
   bckg:loadImage(imagesPath .. '/bckg2.png')
   menuPanel:loadImage(imagesPath .. '/greaterPanel.png')
+  sideMenuPanel:loadImage(imagesPath .. '/greaterPanel.png')
   flag:loadImage(imagesPath .. '/flag.png')
   players:loadRoadImage(imagesPath .. '/road4.png')
   gameController:loadChoiceButtonImage(imagesPath .. '/choiceButton.png')
@@ -167,20 +175,22 @@ function love.draw()
   love.graphics.rectangle('fill', -graphic.xLimit, -graphic.yLimit, graphic.xLimit * 2, graphic.yLimit + menuY)
   
   menuPanel:draw(graphic.xScale * 2.41, graphic.yScale / 1.32, graphic.imageXFactor, graphic.imageYFactor)
+  sideMenuPanel:draw(graphic.xScale / 2.35, graphic.yScale / 1.18, graphic.imageXFactor, graphic.imageYFactor)
   
   love.graphics.setColor(0,0,0)
   love.graphics.setFont(defaultFont)
-  love.graphics.print('     N°:', -graphic.xLimit + 0.02 , -0.097, 0, 1/graphic.xScale, 1/graphic.yScale)
+  love.graphics.print('Player Number:', -graphic.xLimit + 0.05 , -0.097, 0, 1/graphic.xScale, 1/graphic.yScale)
   
   love.graphics.setColor(0,0,0)
   love.graphics.setFont(defaultFont)
-  love.graphics.print('Meters:', -graphic.xLimit + 0.02 , -0.247, 0, 1/graphic.xScale, 1/graphic.yScale)
+  love.graphics.print('Current meters:', -graphic.xLimit + 0.05 , -0.247, 0, 1/graphic.xScale, 1/graphic.yScale)
   
   players:drawIds(graphic.xScale, graphic.yScale, graphic.imageXFactor, graphic.imageYFactor, gameplayFont)
   
   players:drawScores(graphic.xScale, graphic.yScale, graphic.imageXFactor, graphic.imageYFactor, arcadeFont)
   
   gameController:drawChoices(graphic.xScale, graphic.yScale, graphic.imageXFactor, graphic.imageYFactor, gameplayFont, arcadeFont)
+  gameController:drawCurrentState(graphic.xScale, graphic.yScale, graphic.imageXFactor, graphic.imageYFactor, defaultFont);
   
   love.graphics.setColor(0,0,0)
   love.graphics.rectangle('fill', -graphic.xLimit, -graphic.yLimit, -graphic.xLimit * 2, graphic.yLimit * 2)
