@@ -35,7 +35,8 @@ function Object:getRelativePosAhead(distance, angle)
   }
 end
 
-function Object:gotoPos(x, y, time)
+function Object:gotoPos(x, y, time, cb)
+  cb = cb or nil
   local deltaX = x - self.pos.x
   local deltaY = y - self.pos.y
   self.speed.hor = deltaX / time
@@ -44,6 +45,9 @@ function Object:gotoPos(x, y, time)
   self._gotoTimer:whenFinished(function()
     self.speed.hor = 0
     self.speed.ver = 0
+    if cb then
+      cb()
+    end
     self._gotoTimer = nil
   end)
   self._gotoTimer:begin(time)

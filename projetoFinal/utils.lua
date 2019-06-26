@@ -19,6 +19,10 @@ function utils.spreadValues(first, last, amount)
     end
     return current, inx
   end
-end  
+end
+
+function utils.numberToLetter(number)
+  return string.char(number + string.byte('a') - 1)
+end
 
 return utils

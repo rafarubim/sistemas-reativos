@@ -131,7 +131,7 @@ function love.load()
   bckg:loadImage(imagesPath .. '/bckg2.png')
   menuPanel:loadImage(imagesPath .. '/greaterPanel.png')
   sideMenuPanel:loadImage(imagesPath .. '/greaterPanel.png')
-  flag:loadImage(imagesPath .. '/flag.png')
+  flag:loadImage(imagesPath .. '/flag2.png')
   players:loadRoadImage(imagesPath .. '/road4.png')
   gameController:loadChoiceButtonImage(imagesPath .. '/choiceButton.png')
   
@@ -191,6 +191,7 @@ function love.draw()
   
   gameController:drawChoices(graphic.xScale, graphic.yScale, graphic.imageXFactor, graphic.imageYFactor, gameplayFont, arcadeFont)
   gameController:drawCurrentState(graphic.xScale, graphic.yScale, graphic.imageXFactor, graphic.imageYFactor, defaultFont);
+  gameController:drawGoal(graphic.xScale, graphic.yScale, graphic.imageXFactor, graphic.imageYFactor, defaultFont);
   
   love.graphics.setColor(0,0,0)
   love.graphics.rectangle('fill', -graphic.xLimit, -graphic.yLimit, -graphic.xLimit * 2, graphic.yLimit * 2)

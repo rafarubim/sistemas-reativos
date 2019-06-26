@@ -9,7 +9,7 @@ local Player = Object:extended({
     g = 0.5,
     b = 0.5,
   },
-  choice = 1,
+  choice = 0,
   playing = false,
   isReady = false,
   score = 0,
@@ -29,20 +29,19 @@ end
 
 function Player:reset()
   if self.playing and not self.isReady then
-    self:gotoPos(self.pos.x, 0.922, 1)
+    self:gotoPos(self.pos.x, 0.76, 5)
     --self:resetState()
   end
 end
 
 function Player:increase()
   if self.playing and not self.isReady then
-    self.score = self.score + 1
     self.choice = self.choice + 1
   end
 end
 
 function Player:ready()
-  if self.playing then
+  if self.playing and self.choice > 0 then
     self.isReady = true
   end
 end

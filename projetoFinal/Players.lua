@@ -53,7 +53,7 @@ function Players:createPlayer(id)
         g = colorLowerLimit + math.random() * colorRange,
         b = colorLowerLimit + math.random() * colorRange
       },
-      playing = true,
+      choice = 1,
     })
     if self._nextInsertLeft then
       table.insert(self.all, 1, newPlayer)
@@ -110,35 +110,34 @@ function Players:drawIds(xScale, yScale, imageXFactor, imageYFactor, font)
     
     local textAdjustX = 0.03
     local textAdjustY = -0.017
-    if player.id > 9 then
-      textAdjustX = 0.01
-    end
+    
     if player.isReady then
       love.graphics.setColor(1, 1, 1)
     else
       love.graphics.setColor(0, 0, 0)
     end
     love.graphics.setFont(font)
-    love.graphics.print(tostring(player.id), player.pos.x - rectWidth/2 + textAdjustX, rectY + rectHeight + textAdjustY, 0, 1/xScale, 1/yScale)
+    love.graphics.print(utils.numberToLetter(player.id), player.pos.x - rectWidth/2 + textAdjustX, rectY + rectHeight + textAdjustY, 0, 1/xScale, 1/yScale)
   end
 end
 
 function Players:drawScores(xScale, yScale, imageXFactor, imageYFactor, font)
   for _, player in ipairs(self.all) do
-    
-    local textAdjustX = 0.03
-    if player.score > 99 then
-      textAdjustX = 0
-    elseif player.score > 9 then
-      textAdjustX = 0.018
+    if player.playing then
+      local textAdjustX = 0.03
+      if player.score > 99 then
+        textAdjustX = 0
+      elseif player.score > 9 then
+        textAdjustX = 0.018
+      end
+      
+      love.graphics.setColor(player.color.r - 0.3, player.color.g - 0.3, player.color.b - 0.3)
+      love.graphics.circle('fill', player.pos.x, -0.294, player.radius * 1.3)
+      
+      love.graphics.setColor(player.color.r + 0.3, player.color.g + 0.3, player.color.b + 0.3)
+      love.graphics.setFont(font)
+      love.graphics.print(tostring(player.score), player.pos.x - player.radius + textAdjustX, -0.267, 0, 1/xScale, 1/yScale)
     end
-    
-    love.graphics.setColor(player.color.r - 0.3, player.color.g - 0.3, player.color.b - 0.3)
-    love.graphics.circle('fill', player.pos.x, -0.294, player.radius * 1.3)
-    
-    love.graphics.setColor(player.color.r + 0.3, player.color.g + 0.3, player.color.b + 0.3)
-    love.graphics.setFont(font)
-    love.graphics.print(tostring(player.score), player.pos.x - player.radius + textAdjustX, -0.267, 0, 1/xScale, 1/yScale)
   end
 end
 
