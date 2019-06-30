@@ -55,6 +55,7 @@ local players = Players:new()
 local gameController = GameController:new()
 local gameplayFont = love.graphics.newFont(fontsPath .. '/gameplay.ttf', 24)
 local arcadeFont = love.graphics.newFont(fontsPath .. '/arcade.ttf', 24)
+local arcadeFont48 = love.graphics.newFont(fontsPath .. '/arcade.ttf', 48)
 local defaultFont = love.graphics.newFont(18)
 
 local menuY = -0.06
@@ -134,6 +135,8 @@ function love.load()
   flag:loadImage(imagesPath .. '/flag2.png')
   players:loadRoadImage(imagesPath .. '/road4.png')
   gameController:loadChoiceButtonImage(imagesPath .. '/choiceButton.png')
+  gameController:loadChosenButtonImage(imagesPath .. '/chosenButton.png')
+  gameController:loadPointingHandImage(imagesPath .. '/pointingHand.png')
   
   --players:createPlayer(1)
   --players:createPlayer(2)
@@ -142,6 +145,14 @@ function love.load()
   --players:createPlayer(5)
   --players:createPlayer(6)
   --players:createPlayer(7)
+end
+
+function love.mousepressed(x, y, button)
+  x = x / graphic.xScale - virtualWindow.xTranslation - graphic.xLimit
+  y = y / graphic.yScale - virtualWindow.yTranslation + graphic.yLimit
+  if button == 1 then
+    gameController:mousePressed(x, y)
+  end
 end
 
 function love.update(dt)
@@ -157,6 +168,7 @@ function love.draw()
   love.graphics.clear(1,1,1)
   
   love.graphics.push()
+  
   love.graphics.scale(graphic.xScale, graphic.yScale)
   love.graphics.translate(virtualWindow.xTranslation, virtualWindow.yTranslation)
   love.graphics.translate(graphic.xLimit, -graphic.yLimit)
@@ -190,8 +202,10 @@ function love.draw()
   players:drawScores(graphic.xScale, graphic.yScale, graphic.imageXFactor, graphic.imageYFactor, arcadeFont)
   
   gameController:drawChoices(graphic.xScale, graphic.yScale, graphic.imageXFactor, graphic.imageYFactor, gameplayFont, arcadeFont)
-  gameController:drawCurrentState(graphic.xScale, graphic.yScale, graphic.imageXFactor, graphic.imageYFactor, defaultFont);
-  gameController:drawGoal(graphic.xScale, graphic.yScale, graphic.imageXFactor, graphic.imageYFactor, defaultFont);
+  gameController:drawCurrentState(graphic.xScale, graphic.yScale, graphic.imageXFactor, graphic.imageYFactor, defaultFont)
+  gameController:drawGoal(graphic.xScale, graphic.yScale, graphic.imageXFactor, graphic.imageYFactor, defaultFont)
+  gameController:drawRestartButton(graphic.xScale, graphic.yScale, graphic.imageXFactor, graphic.imageYFactor, arcadeFont48)
+  gameController:drawResults(graphic.xScale, graphic.yScale, graphic.imageXFactor, graphic.imageYFactor, gameplayFont, arcadeFont)
   
   love.graphics.setColor(0,0,0)
   love.graphics.rectangle('fill', -graphic.xLimit, -graphic.yLimit, -graphic.xLimit * 2, graphic.yLimit * 2)

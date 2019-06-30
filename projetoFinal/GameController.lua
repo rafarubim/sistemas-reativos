@@ -12,10 +12,13 @@ local GameController = Class:extended({
   players = nil,
   playersInRound = {},
   timer = nil,
-  exponentialChance = 0.9,
+  exponentialChance = 0.1,
   goal = 0,
   choices = {},
-  animationTime = 5
+  animationTime = 5,
+  champion = nil,
+  chosenButton = nil,
+  pointingHand = nil,
 })
 
 local States = Enum:create()
@@ -27,6 +30,7 @@ local initialState = States.LOBBY
 local transitions = {
   [States.LOBBY] = {
     [Events.ALL_READY] = States.CHOOSING,
+    [Events.RESTART] = States.LOBBY,
   },
   [States.CHOOSING] = {
     [Events.ALL_READY] = States.WAITING,
@@ -66,27 +70,39 @@ end
 function GameController:constructor()
   self._stateMachine = StateMachine:new({}, initialState, transitions)
   self._stateMachine:onTransition(function(prevState, event, newState)
-    print(States:getName(prevState), Events:getName(event), States:getName(newState))
     if event == Events.RESTART then
       self:restart()
+      return
     end
+    
     if prevState == States.LOBBY then
       self:newPlayersEnterRound()
+      self:updateRound()
       self:freePlayers()
-      self:updateChoices()
-    end
-    if prevState == States.WAITING then
-      self:freePlayers()
-      self:updateChoices()
-    end
-    if newState == States.REARRANGING then
+    elseif prevState == States.WAITING and newState ~= States.FINISHED then
       self:newPlayersEnterRound()
+      self:updateRound()
+    end
+  
+    if newState == States.REARRANGING then
       self:rearrangePlayers()
       self:startTimer(self.animationTime, function()
         self._stateMachine:send(Events.DELAY_OVER)
       end)
     elseif newState == States.WAITING then
       self:processResults()
+      local champion = self:getChampion()
+      self:startTimer(self.animationTime, function()
+        if champion then
+          self._stateMachine:send(Events.GAME_END)
+        elseif #self.players.all > #self.playersInRound then
+          self._stateMachine:send(Events.NEW_PLAYER)
+        else
+          self._stateMachine:send(Events.DELAY_OVER)
+        end
+      end)
+    elseif newState == States.CHOOSING then
+      self:freePlayers()
     end
   end)
 end
@@ -122,6 +138,17 @@ function GameController:processResults()
   end
 end
 
+function GameController:getChampion()
+  for _, player in ipairs(self.playersInRound) do
+    if player.score >= self.goal then
+      self.champion = player
+      return player
+    end
+  end
+  self.champion = nil
+  return nil
+end
+
 local function round(x)
   return math.ceil(x-0.5)
 end
@@ -149,24 +176,20 @@ function GameController:newPlayersEnterRound()
 end
 
 function GameController:rearrangePlayers()
-  local nPlayers = #self.playersInRound
-  local nChoices = round(nPlayers/2*1.5)
-  local maxChoice = nChoices * 2 - 1
-  local maxChoiceToGoalProportion = 2.4
-  self.goal = round(maxChoice * maxChoiceToGoalProportion)
   for _, player in ipairs(self.playersInRound) do
     player:gotoPos(player.pos.x, self:getScoreMetersY(player.score), self.animationTime, function() player.dir = 90 end)
   end
 end
 
-function GameController:updateChoices()
+function GameController:updateRound()
   if not self.players or #self.playersInRound < 3 then
     return
   end
   local nPlayers = #self.playersInRound
   local nChoices = round(nPlayers/2*1.5)
   local maxChoice = nChoices * 2 - 1
-  
+  local maxChoiceToGoalProportion = 2.4
+  self.goal = round(maxChoice * maxChoiceToGoalProportion)
   self.choices = {}
   local doExponential = math.random() < self.exponentialChance
   for i = 1, nChoices do
@@ -186,12 +209,15 @@ function GameController:restart()
   for _, player in ipairs(self.players.all) do
     player:resetState()
   end
+  self.players:rearrangePlayers()
 end
 
 function GameController:update()
+  
   if self.timer then
     self.timer:process()
   end
+  
   local state = self._stateMachine.state
   if state ~= States.LOBBY then
     for _, player in ipairs(self.players.all) do
@@ -201,6 +227,9 @@ function GameController:update()
     end
   end
   if state == States.LOBBY then
+    for _, player in ipairs(self.players.all) do
+      player.playing = true
+    end
     local allReady = true
     for _, player in ipairs(self.players.all) do
       player.playing = true
@@ -221,13 +250,6 @@ function GameController:update()
       end
     end
     if allReady then
-      self:startTimer(self.animationTime, function()
-        if #self.players.all > #self.playersInRound then
-          self._stateMachine:send(Events.NEW_PLAYER)
-        else
-          self._stateMachine:send(Events.DELAY_OVER)
-        end
-      end)
       self._stateMachine:send(Events.ALL_READY)
     end
   end
@@ -240,7 +262,7 @@ end
 
 function GameController:drawChoices(xScale, yScale, imageXFactor, imageYFactor, fontChoice, fontMeters)
   local state = self._stateMachine.state
-  if state ~= States.CHOOSING and state ~= States.REARRANGING then
+  if state ~= States.CHOOSING then
     return
   end
   
@@ -297,10 +319,10 @@ function GameController:drawCurrentState(xScale, yScale, imageXFactor, imageYFac
   local message5 = ''
   local state = self._stateMachine.state
   if state == States.LOBBY then
-    message1 = 'To begin, at least'
-    message2 = 'all players must'
-    message3 = 'be ready (at'
-    message4 = 'least 3)'
+    message1 = 'To begin, all'
+    message2 = 'players must be'
+    message3 = 'ready (at least'
+    message4 = '3)'
   elseif state == States.CHOOSING then
     message1 = 'Hey everyone!'
     message2 = 'Choose how'
@@ -314,6 +336,11 @@ function GameController:drawCurrentState(xScale, yScale, imageXFactor, imageYFac
     message3 = 'previous round.'
     message4 = 'Rearranging'
     message5 = 'players.'
+  elseif state == States.FINISHED then
+    message1 = 'End of game.'
+    message2 = 'Congratulations'
+    message3 = 'player ' .. string.upper(utils.numberToLetter(self.champion.id)) .. '!'
+    message4 = 'You won!'
   end
   love.graphics.setColor(0, 0, 0)
   love.graphics.setFont(fontState)
@@ -328,6 +355,77 @@ function GameController:drawGoal(xScale, yScale, imageXFactor, imageYFactor, fon
   love.graphics.setColor(0.4, 0.1, 0.1)
   love.graphics.setFont(fontGoal)
   love.graphics.print('Goal: ' .. self.goal .. 'm', -1.48, 0.9, 0, imageXFactor, -imageYFactor)
+end
+
+function GameController:drawRestartButton(xScale, yScale, imageXFactor, imageYFactor, fontText)
+  love.graphics.setColor(0.4, 0.1, 0.1)
+  love.graphics.rectangle('fill', -1.48, 0, 0.45, 0.15, 0.09, 0.03)
+  love.graphics.setLineWidth(0.001)
+  love.graphics.setColor(0, 0, 0)
+  love.graphics.rectangle('line', -1.48, 0, 0.45, 0.15, 0.09, 0.03)
+  love.graphics.setColor(1, 1, 1)
+  love.graphics.setFont(fontText)
+  love.graphics.print('RESET', -1.44, 0.13, 0, imageXFactor, -imageYFactor)
+end
+
+function GameController:mousePressed(x, y)
+  if x >= -1.48 and x <= -1.03 and y >= 0 and y <= 0.15 then
+    self._stateMachine:send(Events.RESTART)
+  end
+end
+
+function GameController:loadChosenButtonImage(path)
+  self.chosenButton = Object:new()
+  self.chosenButton:loadImage(path)
+end
+
+function GameController:loadPointingHandImage(path)
+  self.pointingHand = Object:new()
+  self.pointingHand:loadImage(path)
+end
+
+function GameController:drawResults(xScale, yScale, imageXFactor, imageYFactor, fontChoice, fontMeters)
+  --if self._stateMachine.state ~= States.WAITING then
+    --return
+  --end
+  local newMetersY = -0.78
+  local pointingHandY = -0.47
+  local chosenY = -0.65
+  for _, player in ipairs(self.players.all) do
+      self.pointingHand.pos.x = player.pos.x
+      self.pointingHand.pos.y = pointingHandY
+      self.pointingHand:draw(xScale, yScale, imageXFactor, imageYFactor)
+      
+      self.chosenButton.pos.x = player.pos.x
+      self.chosenButton.pos.y = chosenY
+      self.chosenButton:draw(xScale, yScale, imageXFactor, imageYFactor)
+      
+      local adjustX = -0.025
+      if player.choice > 9 then
+        adjustX = -0.04
+      end
+    
+      love.graphics.setColor(1, 1, 1)
+      love.graphics.setFont(fontChoice)
+      love.graphics.print(tostring(player.choice), player.pos.x + adjustX, chosenY + 0.04, 0, imageXFactor, -imageYFactor)
+      
+      love.graphics.setColor(0, 0, 0)
+      love.graphics.rectangle('fill', player.pos.x - 0.073, newMetersY - 0.08, 0.15, 0.1, 0.03, 0.03)
+      love.graphics.setLineWidth(0.01)
+      love.graphics.setColor(0.4, 0.1, 0.1)
+      love.graphics.rectangle('line', player.pos.x - 0.073, newMetersY - 0.08, 0.15, 0.1, 0.03, 0.03)
+      
+      local scored = 27--self.choices[player.choice]
+      local adjustX = -0.035
+      if scored > 99 then
+        adjustX = -0.065
+      elseif scored > 9 then
+        adjustX = -0.055
+      end
+      love.graphics.setColor(1, 1, 1)
+      love.graphics.setFont(fontMeters)
+      love.graphics.print('+' .. tostring(scored), player.pos.x+adjustX, newMetersY, 0, imageXFactor, -imageYFactor)
+    end
 end
 
 return GameController

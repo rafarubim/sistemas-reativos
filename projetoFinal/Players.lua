@@ -14,7 +14,7 @@ local Players = Class:extended({
   roadImagePath = nil,
 })
 
-function Players:updatePosPlayers()
+function Players:rearrangePlayers()
   local amount = #self.all
   local leftCorner = -1.4
   local rightCorner = 1.95
@@ -63,7 +63,7 @@ function Players:createPlayer(id)
     self._nextInsertLeft = not self._nextInsertLeft
     self.roads[newPlayer] = Object:new()
     self.roads[newPlayer]:loadImage(self.roadImagePath)
-    self:updatePosPlayers()
+    self:rearrangePlayers()
     return newPlayer
   end
   return nil

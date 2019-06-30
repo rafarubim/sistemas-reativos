@@ -18,7 +18,6 @@ local Player = Object:extended({
 
 function Player:constructor()
   self._initialState = tableUtils.copyInstance(self)
-  self._initialState.pos = nil
 end
 
 function Player:resetState()
@@ -27,10 +26,9 @@ function Player:resetState()
   self._initialState = tableUtils.copyInstance(self)
 end
 
-function Player:reset()
+function Player:resetChoice()
   if self.playing and not self.isReady then
-    self:gotoPos(self.pos.x, 0.76, 5)
-    --self:resetState()
+    self.choice = 0
   end
 end
 
@@ -41,6 +39,7 @@ function Player:increase()
 end
 
 function Player:ready()
+  print(self.playing, self.choice)
   if self.playing and self.choice > 0 then
     self.isReady = true
   end
@@ -72,7 +71,7 @@ end
 
 -- override
 Player._controlHandlers = {
-  [Controls.RESET] = Player.reset,
+  [Controls.RESET] = Player.resetChoice,
   [Controls.READY] = Player.ready,
   [Controls.INCREASE] = Player.increase
 }
