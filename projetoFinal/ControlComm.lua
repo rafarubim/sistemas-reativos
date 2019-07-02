@@ -28,7 +28,7 @@ function ControlComm:begin(controlConnectedCb, controlEventCb)
       end
     end
   end
-  self.__mqttClient = mqtt.client.create("iot.eclipse.org", 1883, self.__mqttCb)
+  self.__mqttClient = mqtt.client.create("broker.hivemq.com", 1883, self.__mqttCb)
   self.__mqttClient:connect(self.clientName)
   self.__mqttClient:subscribe({ self.idDistributorTopic })
   self.__mqttClient:subscribe({ self.controlTopic })
