@@ -162,7 +162,7 @@ gpio.trig(sw2, "down", cbButton2Down)
 function internetConnected()
   m = mqtt.Client("rafaEGabsPlayer", 120)
 -- conecta com servidor mqtt na porta 1883:
-  m:connect("broker.hivemq.com", 1883
+  m:connect("test.mosquitto.org", 1883
     , 0,
     -- callback em caso de sucesso  
     function(client)
