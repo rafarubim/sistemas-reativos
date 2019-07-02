@@ -15,9 +15,11 @@ local GameController = Class:extended({
   exponentialChance = 0.1,
   goal = 0,
   choices = {},
+  chosen = {},
   animationTime = 5,
   champion = nil,
   chosenButton = nil,
+  darkChosenButton = nil,
   pointingHand = nil,
 })
 
@@ -119,20 +121,24 @@ end
 
 function GameController:processResults()
   local maxChoices = #self.choices
-  local chosen = setmetatable({}, {__index=function() return 0 end})
+  self.chosen = setmetatable({}, {__index=function() return 0 end})
   for _, player in ipairs(self.playersInRound) do
     local choice = player.choice
     if choice > maxChoices then
       choice = maxChoices
     end
-    chosen[choice] = chosen[choice] + 1
+    self.chosen[choice] = self.chosen[choice] + 1
   end
   local initialY = 0
   local penultimateY = 0.76
   local finalY = 0.935
   for _, player in ipairs(self.playersInRound) do
-    if chosen[player.choice] == 1 then
-      player.score = player.score + self.choices[player.choice]
+    local choice = player.choice
+    if choice > maxChoices then
+      choice = maxChoices
+    end
+    if self.chosen[choice] == 1 then
+      player.score = player.score + self.choices[choice]
       player:gotoPos(player.pos.x, self:getScoreMetersY(player.score), self.animationTime)
     end
   end
@@ -379,52 +385,79 @@ function GameController:loadChosenButtonImage(path)
   self.chosenButton:loadImage(path)
 end
 
+function GameController:loadDarkChosenButtonImage(path)
+  self.darkChosenButton = Object:new()
+  self.darkChosenButton:loadImage(path)
+end
+
 function GameController:loadPointingHandImage(path)
   self.pointingHand = Object:new()
   self.pointingHand:loadImage(path)
 end
 
 function GameController:drawResults(xScale, yScale, imageXFactor, imageYFactor, fontChoice, fontMeters)
-  --if self._stateMachine.state ~= States.WAITING then
-    --return
-  --end
+  if self._stateMachine.state ~= States.WAITING then
+    return
+  end
   local newMetersY = -0.78
   local pointingHandY = -0.47
   local chosenY = -0.65
-  for _, player in ipairs(self.players.all) do
-      self.pointingHand.pos.x = player.pos.x
-      self.pointingHand.pos.y = pointingHandY
-      self.pointingHand:draw(xScale, yScale, imageXFactor, imageYFactor)
-      
-      self.chosenButton.pos.x = player.pos.x
-      self.chosenButton.pos.y = chosenY
-      self.chosenButton:draw(xScale, yScale, imageXFactor, imageYFactor)
-      
-      local adjustX = -0.025
-      if player.choice > 9 then
-        adjustX = -0.04
+  for _, player in ipairs(self.playersInRound) do
+      local playerChoice = player.choice
+      if playerChoice > #self.choices then
+        playerChoice = #self.choices
       end
+      if playerChoice > 0 then
     
-      love.graphics.setColor(1, 1, 1)
-      love.graphics.setFont(fontChoice)
-      love.graphics.print(tostring(player.choice), player.pos.x + adjustX, chosenY + 0.04, 0, imageXFactor, -imageYFactor)
-      
-      love.graphics.setColor(0, 0, 0)
-      love.graphics.rectangle('fill', player.pos.x - 0.073, newMetersY - 0.08, 0.15, 0.1, 0.03, 0.03)
-      love.graphics.setLineWidth(0.01)
-      love.graphics.setColor(0.4, 0.1, 0.1)
-      love.graphics.rectangle('line', player.pos.x - 0.073, newMetersY - 0.08, 0.15, 0.1, 0.03, 0.03)
-      
-      local scored = 27--self.choices[player.choice]
-      local adjustX = -0.035
-      if scored > 99 then
-        adjustX = -0.065
-      elseif scored > 9 then
-        adjustX = -0.055
+        self.pointingHand.pos.x = player.pos.x
+        self.pointingHand.pos.y = pointingHandY
+        self.pointingHand:draw(xScale, yScale, imageXFactor, imageYFactor)
+        
+        
+        local playerScored = self.chosen[playerChoice] == 1
+        
+        if playerScored then
+          self.chosenButton.pos.x = player.pos.x
+          self.chosenButton.pos.y = chosenY
+          self.chosenButton:draw(xScale, yScale, imageXFactor, imageYFactor)
+        else
+          self.darkChosenButton.pos.x = player.pos.x
+          self.darkChosenButton.pos.y = chosenY
+          self.darkChosenButton:draw(xScale, yScale, imageXFactor, imageYFactor)
+        end
+        
+        local adjustX = -0.025
+        if playerChoice > 9 then
+          adjustX = -0.04
+        end
+        
+        if playerScored then
+          love.graphics.setColor(1, 1, 1)
+        else
+          love.graphics.setColor(0.5, 0.5, 0.5)
+        end
+        love.graphics.setFont(fontChoice)
+        love.graphics.print(tostring(playerChoice), player.pos.x + adjustX, chosenY + 0.04, 0, imageXFactor, -imageYFactor)
+        
+        if playerScored then
+          love.graphics.setColor(0, 0, 0)
+          love.graphics.rectangle('fill', player.pos.x - 0.073, newMetersY - 0.08, 0.15, 0.1, 0.03, 0.03)
+          love.graphics.setLineWidth(0.01)
+          love.graphics.setColor(0.4, 0.1, 0.1)
+          love.graphics.rectangle('line', player.pos.x - 0.073, newMetersY - 0.08, 0.15, 0.1, 0.03, 0.03)
+          
+          local scored = self.choices[playerChoice]
+          adjustX = -0.035
+          if scored > 99 then
+            adjustX = -0.065
+          elseif scored > 9 then
+            adjustX = -0.055
+          end
+          love.graphics.setColor(1, 1, 1)
+          love.graphics.setFont(fontMeters)
+          love.graphics.print('+' .. tostring(scored), player.pos.x+adjustX, newMetersY, 0, imageXFactor, -imageYFactor)
+        end
       end
-      love.graphics.setColor(1, 1, 1)
-      love.graphics.setFont(fontMeters)
-      love.graphics.print('+' .. tostring(scored), player.pos.x+adjustX, newMetersY, 0, imageXFactor, -imageYFactor)
     end
 end
 

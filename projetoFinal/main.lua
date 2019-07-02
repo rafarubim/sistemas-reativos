@@ -113,6 +113,7 @@ end
 
 function love.load()
   love.window.setMode( window.width, window.height, { fullscreen = fullscreen } )
+  love.window.setTitle('Lucky Run')
   updateWindow(window.width, window.height)
   
   controlComm:begin(
@@ -135,16 +136,9 @@ function love.load()
   flag:loadImage(imagesPath .. '/flag2.png')
   players:loadRoadImage(imagesPath .. '/road4.png')
   gameController:loadChoiceButtonImage(imagesPath .. '/choiceButton.png')
+  gameController:loadDarkChosenButtonImage(imagesPath .. '/darkChosenButton.png')
   gameController:loadChosenButtonImage(imagesPath .. '/chosenButton.png')
   gameController:loadPointingHandImage(imagesPath .. '/pointingHand.png')
-  
-  --players:createPlayer(1)
-  --players:createPlayer(2)
-  --players:createPlayer(3)
-  --players:createPlayer(4)
-  --players:createPlayer(5)
-  --players:createPlayer(6)
-  --players:createPlayer(7)
 end
 
 function love.mousepressed(x, y, button)
